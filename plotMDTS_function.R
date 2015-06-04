@@ -7,9 +7,9 @@ require(stringr)
 #' Plot a Multi-Dimensional Time-Series
 #' 
 #' This wrapper enables you to quickly and powerfully plot a multi-dimensional
-#' time-series dataset using ggplot2 and dplyr. 
+#' time-series dataset using ggplot2 and dplyr.
 #' @param data.in A time-series data frame with a column of dates named "date"
-#' @param metric The metric you want to plot (required)
+#' @param metric The metric you want to plot. Count unique values of a column with: "n(my_dimension)"
 #' @export
 #' @examples plotMDTS(example_data, metric="raisedAmt", filters = ~date > '2007-01-01',
 #'                    group = "category", facet = "state")
@@ -27,22 +27,27 @@ plotMDTS <- function(
   xlab = "Date",
   weekends = FALSE,
   add.zeros = FALSE,
-  counting = FALSE,
   y.zero = FALSE
 ) {
   
-  # Convert data.in into a data frame (so group operaitons work)
+  # Type as data.frame (dplyr grouped data.frames cause issues)
   data.in <- as.data.frame(data.in)
   
-  # Check for count of metric
-  if(grepl("n\\(.*\\)", metric)) {
-    counting <- TRUE
+  # Check for count unique of a field as a metric
+  count.unique = FALSE
+  if (grepl("n\\(.*\\)", metric)) {
+    count.unique <- TRUE
     metric <- substr(metric, 3, nchar(metric) - 1)
   }
   
   # Verify columns 
-  stopifnot(exists("date", where = data.in))
-  stopifnot(exists(metric, where = data.in))  
+  if (!exists("date", where = data.in)) {
+    stop("data.in must have a column named 'date'")
+  }
+  
+  if (!exists(metric, where = data.in)) {
+    stop(paste(metric, "not found in data.in"))
+  }
   
   data.clean <- data.in
   
@@ -58,16 +63,13 @@ plotMDTS <- function(
   #            Looks like this might also solve the time support too.
   
   # Aggregate across dimensions except group and facet
-  if (!is.null(group)){
-    if (!is.null(facet)) {
-      # Both group and facet
-      data.group <- group_by_(data.clean, "date", group, facet)
-      
-    } else {
-      # Just group
-      data.group <- group_by_(data.clean, "date", group)
-      
-    }
+  if (!is.null(group) && !is.null(facet)) {
+    # Both group and facet
+    data.group <- group_by_(data.clean, "date", group, facet)
+    
+  } else if (!is.null(group)) {
+    # Just group
+    data.group <- group_by_(data.clean, "date", group)
   } else if (!is.null(facet)) {
     # Just facet
     data.group <- group_by_(data.clean, "date", facet)
@@ -79,7 +81,7 @@ plotMDTS <- function(
   }
   
   # Add metric
-  if(counting) {
+  if (count.unique) {
     data.group <- summarize_(data.group,
                             value = interp(~n_distinct(var), var = as.name(metric)))
     
@@ -90,7 +92,7 @@ plotMDTS <- function(
   }
   
   # Rename value to metric
-  if(y.zero) {
+  if (y.zero) {
     min.val <- min(0, min(data.group$value, na.rm = TRUE))
   } else {
     min.val <- min(data.group$value, na.rm = TRUE)
@@ -99,7 +101,7 @@ plotMDTS <- function(
   colnames(data.group)[colnames(data.group)=="value"] <- metric
   
   # Fill in zeros for missing values
-  if(add.zeros) {
+  if (add.zeros) {
     data.group <- addMissingZeros(data.group)
     
   }
@@ -108,7 +110,7 @@ plotMDTS <- function(
   data.plot <- ggplot()
   
   # Add weekends
-  if(weekends) {
+  if (weekends) {
     # Calculate weekends for plotting     
     weekends <- select(
       filter(data.frame(date=seq(min(data.group$date, na.rm = TRUE), 
@@ -125,11 +127,11 @@ plotMDTS <- function(
     data.plot <- data.plot +
       geom_rect(data=plot.weekends, aes(xmin=xmin, xmax=xmax, ymin=ymin, 
                                         ymax=ymax),
-                fill = "grey80", alpha = "0.15")
+                fill = "grey80", alpha = 0.15)
   }
   
   # Lines to plot
-  if(!is.null(group)) {
+  if (!is.null(group)) {
     # Adding group color
     data.plot <- data.plot + 
       geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
@@ -145,7 +147,7 @@ plotMDTS <- function(
   }
   
   # Add facets
-  if(!is.null(facet)) {
+  if (!is.null(facet)) {
     # Add facet
     data.plot <- data.plot + facet_wrap(as.formula(paste0("~", facet)))
     

@@ -29,7 +29,7 @@ addTimeShift <- function(data.in,
   
   # Make sure date column exist
   if (!exists(date.col, where = data.in)) {
-    stop("Date column in not found in this dataset.")
+    stop("Date column in not found in this dataframe")
   }
   
   # Only support 1-3 shifts

@@ -24,6 +24,7 @@ plotMDTS <- function(
   by.date = "day",
   time.shift = NULL,
   shift.per = 364, 
+  growth.per = 364,
   title = metric,
   ylab = metric,
   xlab = "Date",
@@ -36,10 +37,17 @@ plotMDTS <- function(
   data.in <- as.data.frame(data.in)
   
   # Check for count unique of a field as a metric
-  count.unique = FALSE
+  count.unique <- FALSE
   if (grepl("n\\(.*\\)", metric)) {
     count.unique <- TRUE
     metric <- substr(metric, 3, nchar(metric) - 1)
+  }
+  
+  # Check for growth calculation on metric
+  growth <- FALSE
+  if (grepl(".growth", metric)) {
+    growth <- TRUE
+    metric <- gsub(".growth", "", metric)
   }
   
   # Verify columns 
@@ -75,7 +83,7 @@ plotMDTS <- function(
   # Add metric
   if (count.unique) {
     data.group <- summarize_(data.group,
-                            value = interp(~n_distinct(var), var = as.name(metric)))
+                             value = interp(~n_distinct(var), var = as.name(metric)))
     
   } else {
     data.group <- summarize_(data.group,
@@ -92,10 +100,26 @@ plotMDTS <- function(
   max.val <- max(data.group$value, na.rm = TRUE)
   colnames(data.group)[colnames(data.group)=="value"] <- metric
   
+  # Add growth calculation
+  if (growth) {
+    
+    # Only by.date = "day" is currently supported
+    if (!by.date == "day") {
+      stop("Growth calculations are only supported wtih by.date = 'Day'")
+    }
+    
+    data.group <- addGrowthRate(data.group,
+                                metric = metric,
+                                date.col = "date",
+                                growth.per = growth.per)
+    
+    metric = "growth.rate"
+  }
+  
   # Add time shift
   if (!is.null(time.shift)) {
     
-    # Figure out what to shift by depending on date aggregation
+    # TODO (mbh): Figure out what to shift by depending on date aggregation?
     data.group <- addTimeShift(data.group, 
                                metric = metric,
                                time.shift = time.shift, 

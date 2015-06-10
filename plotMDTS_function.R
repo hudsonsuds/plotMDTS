@@ -17,15 +17,17 @@ require(stringr)
 
 plotMDTS <- function(
   data.in,
-  metric = NULL,
+  metric,
   filters = NULL,
   group = NULL,
   facet = NULL,
-  by.date = "Daily",
+  by.date = "day",
+  time.shift = NULL,
+  shift.per = 364, 
   title = metric,
   ylab = metric,
   xlab = "Date",
-  weekends = FALSE,
+  add.weekends = FALSE,
   add.zeros = FALSE,
   y.zero = FALSE
 ) {
@@ -51,17 +53,6 @@ plotMDTS <- function(
   
   data.clean <- data.in
   
-  # Filter data
-  if (!is.null(filters)) {
-    data.clean <- filter_(data.clean, filters)
-    
-    # Drop NAs for defined metric
-    data.clean <- filter(data.clean, !is.na(interp(metric)))
-  }  
-  
-  # TODO(mbh): Add support for data aggregation; use lubridate?
-  #            Looks like this might also solve the time support too.
-  
   # Aggregate across dimensions except group and facet
   if (!is.null(group) && !is.null(facet)) {
     # Both group and facet
@@ -70,6 +61,7 @@ plotMDTS <- function(
   } else if (!is.null(group)) {
     # Just group
     data.group <- group_by_(data.clean, "date", group)
+    
   } else if (!is.null(facet)) {
     # Just facet
     data.group <- group_by_(data.clean, "date", facet)
@@ -100,6 +92,27 @@ plotMDTS <- function(
   max.val <- max(data.group$value, na.rm = TRUE)
   colnames(data.group)[colnames(data.group)=="value"] <- metric
   
+  # Add time shift
+  if (!is.null(time.shift)) {
+    
+    # Figure out what to shift by depending on date aggregation
+    data.group <- addTimeShift(data.group, 
+                               metric = metric,
+                               time.shift = time.shift, 
+                               shift.per = shift.per)
+  }
+  
+  # Aggregate by date
+  data.group <- aggregateByDate(as.data.frame(data.group), by.date = by.date)
+  
+  # Filter data
+  if (!is.null(filters)) {
+    data.group <- filter_(data.group, filters)
+    
+    # Drop NAs for defined metric
+    data.group <- filter(data.group, !is.na(interp(metric)))
+  }  
+  
   # Fill in zeros for missing values
   if (add.zeros) {
     data.group <- addMissingZeros(data.group)
@@ -110,7 +123,7 @@ plotMDTS <- function(
   data.plot <- ggplot()
   
   # Add weekends
-  if (weekends) {
+  if (add.weekends) {
     # Calculate weekends for plotting     
     weekends <- select(
       filter(data.frame(date=seq(min(data.group$date, na.rm = TRUE), 
@@ -131,18 +144,51 @@ plotMDTS <- function(
   }
   
   # Lines to plot
-  if (!is.null(group)) {
+  if (!is.null(group) && !is.null(time.shift)) {
+    
+    # Adding group and time.shift
+    data.plot <- 
+      switch(time.shift,
+             data.plot +
+               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)),
+             data.plot +
+               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4)),
+             data.plot +
+               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.3", color = group, alpha = .2)))
+    
+  } else if (!is.null(group)) {  
     # Adding group color
     data.plot <- data.plot + 
-      geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
-      geom_point(data = data.group, aes_string(x = "date", y = metric, color = group))
+      geom_line(data = data.group, aes_string(x = "date", y = metric, color = group))
     
+    
+  } else if (!is.null(time.shift)) {
+    # No group with time shift
+    data.plot <- 
+      switch(time.shift,
+             data.plot + 
+               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)),
+             data.plot +
+               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4)),
+             data.plot + 
+               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4)) +
+               geom_line(data = data.group, aes_string(x = "date", y = "n.3", alpha = .2)))
     
   } else {
-    # No group
+    # No group & no time shift
     data.plot <- data.plot + 
-      geom_line(data = data.group, aes_string(x = "date", y = metric)) +
-      geom_point(data = data.group, aes_string(x = "date", y = metric))
+      geom_line(data = data.group, aes_string(x = "date", y = metric))
     
   }
   

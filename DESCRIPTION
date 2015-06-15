@@ -1,0 +1,19 @@
+Package: plotMDTS
+Title: Plot Multi-Dimensional-Time-Series
+Version: 0.1
+Author: Matt Hudson <matt.b.hudson@gmail.com> [aut, cre]
+Maintainer: Matt Hudson <matt.b.hudson@gmail.com>
+Authors@R: c( person("Matt", "Hudson", email = "matt.b.hudson@gmail.com", role =
+    c("aut", "cre")))
+Description: A wrapper around dplyr and ggplot2 for simpler plotting of a multidimensional timeseries dataset.
+Depends:
+    R (>= 3.0.2)
+Imports:
+  ggplot2,
+	dplyr,
+	scales,
+	lazyeval,
+	stringr,
+  lubridate
+License: MIT
+LazyData: TRUE

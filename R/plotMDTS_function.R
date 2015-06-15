@@ -10,22 +10,52 @@ require(stringr)
 #' time-series dataset using ggplot2 and dplyr.
 #' @param data.in A time-series data frame with a column of dates named "date"
 #' @param metric The metric you want to plot. Count unique values of a column with: "n(my_dimension)"
+#' @param filters A formula to filter your dataset by
+#' @param group The dimension you'd like to group the dataset by within a plot
+#' @param facet The dimension you'd like to group the dataset by across different plots
+#' @param by.date The level of date aggregation to peform (day, week, month, year)
+#' @param time.shift The number of period shifts to apply
+#' @param shift.per The period of time to shift by
+#' @param growth.per The period of time to compare to for growth percents
+#' @param title The title of the plot
+#' @param ylab The y-axis label
+#' @param xlab The x-axis label
+#' @param y.zero Show the y-axis starting at zero
+#' @param add.weekends Whether or not to compute and show weekend highlights for this time-series
+#' @param add.zeros Whether or not to add zeros for every date:dimension combination
 #' @export
-#' @examples plotMDTS(example_data, metric="raisedAmt", filters = ~date > '2007-01-01',
-#'                    group = "category", facet = "state")
+#' @examples 
+#' plotMDTS(example.data, metric = "Impressions")
+#' plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01")
+#' plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01", 
+#'          group = "Channel")
+#'          
+#' plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01", 
+#'          facet = "Channel")
 #' 
+#' plotMDTS(example.data, metric = "Revenue", by.date = "week")
+#' plotMDTS(example.data, metric = "Revenue", by.date = "month")
+#' plotMDTS(example.data, metric = "Revenue", by.date = "year")
+#' 
+#' plotMDTS(example.data, metric = "Revenue", filter = ~date > "2015-01-01", time.shift = 1)
+#' plotMDTS(example.data, metric = "Revenue", filter = ~date > "2015-01-01", time.shift = 2, shift.per = 30)
+#' 
+#' plotMDTS(example.data, metric = "Revenue.growth", filter =~date > "2015-01-01", growth.per = 30)
 
 plotMDTS <- function(
   data.in,
-  metric = NULL,
+  metric,
   filters = NULL,
   group = NULL,
   facet = NULL,
-  by.date = "Daily",
+  by.date = "day",
+  time.shift = NULL,
+  shift.per = 364, 
+  growth.per = 364,
   title = metric,
   ylab = metric,
   xlab = "Date",
-  weekends = FALSE,
+  add.weekends = FALSE,
   add.zeros = FALSE,
   y.zero = FALSE
 ) {
@@ -34,10 +64,17 @@ plotMDTS <- function(
   data.in <- as.data.frame(data.in)
   
   # Check for count unique of a field as a metric
-  count.unique = FALSE
+  count.unique <- FALSE
   if (grepl("n\\(.*\\)", metric)) {
     count.unique <- TRUE
     metric <- substr(metric, 3, nchar(metric) - 1)
+  }
+  
+  # Check for growth calculation on metric
+  growth <- FALSE
+  if (grepl(".growth", metric)) {
+    growth <- TRUE
+    metric <- gsub(".growth", "", metric)
   }
   
   # Verify columns 
@@ -51,17 +88,6 @@ plotMDTS <- function(
   
   data.clean <- data.in
   
-  # Filter data
-  if (!is.null(filters)) {
-    data.clean <- filter_(data.clean, filters)
-    
-    # Drop NAs for defined metric
-    data.clean <- filter(data.clean, !is.na(interp(metric)))
-  }  
-  
-  # TODO(mbh): Add support for data aggregation; use lubridate?
-  #            Looks like this might also solve the time support too.
-  
   # Aggregate across dimensions except group and facet
   if (!is.null(group) && !is.null(facet)) {
     # Both group and facet
@@ -70,6 +96,7 @@ plotMDTS <- function(
   } else if (!is.null(group)) {
     # Just group
     data.group <- group_by_(data.clean, "date", group)
+    
   } else if (!is.null(facet)) {
     # Just facet
     data.group <- group_by_(data.clean, "date", facet)
@@ -83,7 +110,7 @@ plotMDTS <- function(
   # Add metric
   if (count.unique) {
     data.group <- summarize_(data.group,
-                            value = interp(~n_distinct(var), var = as.name(metric)))
+                             value = interp(~n_distinct(var), var = as.name(metric)))
     
   } else {
     data.group <- summarize_(data.group,
@@ -100,6 +127,43 @@ plotMDTS <- function(
   max.val <- max(data.group$value, na.rm = TRUE)
   colnames(data.group)[colnames(data.group)=="value"] <- metric
   
+  # Add growth calculation
+  if (growth) {
+    
+    # Only by.date = "day" is currently supported
+    if (!by.date == "day") {
+      stop("Growth calculations are only supported wtih by.date = 'Day'")
+    }
+    
+    data.group <- addGrowthRate(data.group,
+                                metric = metric,
+                                date.col = "date",
+                                growth.per = growth.per)
+    
+    metric = "growth.rate"
+  }
+  
+  # Add time shift
+  if (!is.null(time.shift)) {
+    
+    # TODO (mbh): Figure out what to shift by depending on date aggregation?
+    data.group <- addTimeShift(data.group, 
+                               metric = metric,
+                               time.shift = time.shift, 
+                               shift.per = shift.per)
+  }
+  
+  # Aggregate by date
+  data.group <- aggregateByDate(as.data.frame(data.group), by.date = by.date)
+  
+  # Filter data
+  if (!is.null(filters)) {
+    data.group <- filter_(data.group, filters)
+    
+    # Drop NAs for defined metric
+    data.group <- filter(data.group, !is.na(interp(metric)))
+  }  
+  
   # Fill in zeros for missing values
   if (add.zeros) {
     data.group <- addMissingZeros(data.group)
@@ -110,7 +174,7 @@ plotMDTS <- function(
   data.plot <- ggplot()
   
   # Add weekends
-  if (weekends) {
+  if (add.weekends) {
     # Calculate weekends for plotting     
     weekends <- select(
       filter(data.frame(date=seq(min(data.group$date, na.rm = TRUE), 
@@ -131,18 +195,44 @@ plotMDTS <- function(
   }
   
   # Lines to plot
-  if (!is.null(group)) {
+  if (!is.null(group) && !is.null(time.shift)) {
+    # Define shift lines
+    n0 <- geom_line(data = data.group, aes_string(x = "date", y = metric, color = group))
+    n1 <- geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7))
+    n2 <- geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4))
+    n3 <- geom_line(data = data.group, aes_string(x = "date", y = "n.3", color = group, alpha = .2))
+    
+    # Adding group and time.shift
+    data.plot <- 
+      switch(time.shift,
+             data.plot + n0 + n1,
+             data.plot + n0 + n1 + n2,
+             data.plot + n0 + n1 + n2 + n3)
+    
+  } else if (!is.null(group)) {  
     # Adding group color
     data.plot <- data.plot + 
-      geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
-      geom_point(data = data.group, aes_string(x = "date", y = metric, color = group))
+      geom_line(data = data.group, aes_string(x = "date", y = metric, color = group))
     
+    
+  } else if (!is.null(time.shift)) {
+    # Define shift lines
+    n0 <- geom_line(data = data.group, aes_string(x = "date", y = metric))
+    n1 <- geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7))
+    n2 <- geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4))
+    n3 <- geom_line(data = data.group, aes_string(x = "date", y = "n.3", alpha = .2))
+    
+    # No group with time shift
+    data.plot <- 
+      switch(time.shift,
+             data.plot + n0 + n1,
+             data.plot + n0 + n1 + n2,
+             data.plot + n0 + n1 + n2 + n3)
     
   } else {
-    # No group
+    # No group & no time shift
     data.plot <- data.plot + 
-      geom_line(data = data.group, aes_string(x = "date", y = metric)) +
-      geom_point(data = data.group, aes_string(x = "date", y = metric))
+      geom_line(data = data.group, aes_string(x = "date", y = metric))
     
   }
   

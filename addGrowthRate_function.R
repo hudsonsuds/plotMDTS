@@ -5,13 +5,13 @@ require(dplyr)
 #' 
 #' This function takes a dataframe with a date column and a metric column,
 #' along with any other dimensions in the dataset, and creates a new
-#' metric column time-shifted by the parameters specified. E.g. clicks for
-#' this row one year ago or one week ago.
+#' metric column with the growth rate of the provided metric compared
+#' to it's value some number of periods before (specified by growth.per)
 #' 
 #' @param data.in The dataframe containing a date and metric
-#' @param date The date column in the dataframe
-#' @param n.per The period of time to shift by (day, week, month, year)
-#' @param n.shift The number of period shifts to apply
+#' @param metric
+#' @param date.col The date column in the dataframe
+#' @param growth.per
 #' @export
 
 addGrowthRate <- function(data.in,

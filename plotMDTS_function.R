@@ -169,22 +169,18 @@ plotMDTS <- function(
   
   # Lines to plot
   if (!is.null(group) && !is.null(time.shift)) {
+    # Define shift lines
+    n0 <- geom_line(data = data.group, aes_string(x = "date", y = metric, color = group))
+    n1 <- geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7))
+    n2 <- geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4))
+    n3 <- geom_line(data = data.group, aes_string(x = "date", y = "n.3", color = group, alpha = .2))
     
     # Adding group and time.shift
     data.plot <- 
       switch(time.shift,
-             data.plot +
-               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)),
-             data.plot +
-               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4)),
-             data.plot +
-               geom_line(data = data.group, aes_string(x = "date", y = metric, color = group)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", color = group, alpha = .7)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.2", color = group, alpha = .4)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.3", color = group, alpha = .2)))
+             data.plot + n0 + n1,
+             data.plot + n0 + n1 + n2,
+             data.plot + n0 + n1 + n2 + n3)
     
   } else if (!is.null(group)) {  
     # Adding group color
@@ -193,21 +189,18 @@ plotMDTS <- function(
     
     
   } else if (!is.null(time.shift)) {
+    # Define shift lines
+    n0 <- geom_line(data = data.group, aes_string(x = "date", y = metric))
+    n1 <- geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7))
+    n2 <- geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4))
+    n3 <- geom_line(data = data.group, aes_string(x = "date", y = "n.3", alpha = .2))
+    
     # No group with time shift
     data.plot <- 
       switch(time.shift,
-             data.plot + 
-               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)),
-             data.plot +
-               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4)),
-             data.plot + 
-               geom_line(data = data.group, aes_string(x = "date", y = metric)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.1", alpha = .7)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.2", alpha = .4)) +
-               geom_line(data = data.group, aes_string(x = "date", y = "n.3", alpha = .2)))
+             data.plot + n0 + n1,
+             data.plot + n0 + n1 + n2,
+             data.plot + n0 + n1 + n2 + n3)
     
   } else {
     # No group & no time shift

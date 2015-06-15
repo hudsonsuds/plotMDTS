@@ -9,9 +9,10 @@ require(dplyr)
 #' this row one year ago or one week ago.
 #' 
 #' @param data.in The dataframe containing a date and metric
-#' @param date The date column in the dataframe
-#' @param n.per The period of time to shift by (day, week, month, year)
-#' @param n.shift The number of period shifts to apply
+#' @param metric
+#' @param date.col The date column in the dataframe
+#' @param time.shift The number of period shifts to apply
+#' @param shift.per The period of time to shift by
 #' @export
 
 addTimeShift <- function(data.in,
@@ -24,8 +25,8 @@ addTimeShift <- function(data.in,
   data.in <- as.data.frame(data.in)
   
   # Defaults for other shift periods
-  shift.per.2 <- shift.per*2
-  shift.per.3 <- shift.per*3
+  shift.per.2 <- shift.per * 2
+  shift.per.3 <- shift.per * 3
   
   # Make sure date column exist
   if (!exists(date.col, where = data.in)) {
@@ -33,7 +34,7 @@ addTimeShift <- function(data.in,
   }
   
   # Only support 1-3 shifts
-  if (!time.shift %in% c(1,2,3)) {
+  if (!time.shift %in% c(1, 2, 3)) {
     stop("addTimeShift only supports 1 to 3 shifts")
   }
   

@@ -16,7 +16,7 @@ You can use devtools and install from this github repo:
 ```
 library(devtools)
 
-install_github("plottMDTS", "hudsonsuds")
+install_github("hudsonsuds/plottMDTS")
 ```
 
 ## Examples

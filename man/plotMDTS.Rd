@@ -13,13 +13,53 @@ plotMDTS(data.in, metric, filters = NULL, group = NULL, facet = NULL,
 \item{data.in}{A time-series data frame with a column of dates named "date"}
 
 \item{metric}{The metric you want to plot. Count unique values of a column with: "n(my_dimension)"}
+
+\item{filters}{A formula to filter your dataset by}
+
+\item{group}{The dimension you'd like to group the dataset by within a plot}
+
+\item{facet}{The dimension you'd like to group the dataset by across different plots}
+
+\item{by.date}{The level of date aggregation to peform (day, week, month, year)}
+
+\item{time.shift}{The number of period shifts to apply}
+
+\item{shift.per}{The period of time to shift by}
+
+\item{growth.per}{The period of time to compare to for growth percents}
+
+\item{title}{The title of the plot}
+
+\item{ylab}{The y-axis label}
+
+\item{xlab}{The x-axis label}
+
+\item{add.weekends}{Whether or not to compute and show weekend highlights for this time-series}
+
+\item{add.zeros}{Whether or not to add zeros for every date:dimension combination}
+
+\item{y.zero}{Show the y-axis starting at zero}
 }
 \description{
 This wrapper enables you to quickly and powerfully plot a multi-dimensional
 time-series dataset using ggplot2 and dplyr.
 }
 \examples{
-plotMDTS(example_data, metric="raisedAmt", filters = ~date > '2007-01-01',
-                   group = "category", facet = "state")
+plotMDTS(example.data, metric = "Impressions")
+plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01")
+plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01",
+         group = "Channel")
+
+plotMDTS(example.data, metric = "Impressions", filter = ~date > "2014-01-01" & date < "2014-04-01",
+         facet = "Channel")
+
+plotMDTS(example.data, metric = "Revenue", by.date = "week")
+plotMDTS(example.data, metric = "Revenue", by.date = "month")
+plotMDTS(example.data, metric = "Revenue", by.date = "year")
+
+plotMDTS(example.data, metric = "Revenue", filter = ~date > "2015-01-01", time.shift = 1)
+plotMDTS(example.data, metric = "Revenue", filter = ~date > "2015-01-01", time.shift = 2, shift.per = 30)
+
+plotMDTS(example.data, metric = "Revenue.growth", filter =~date > "2015-01-01", growth.per = 30)
 }
 

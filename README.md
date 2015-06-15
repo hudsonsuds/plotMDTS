@@ -11,6 +11,14 @@ Plotting a multi-dimensional dataset repeatedly or interactively can be a pain i
 
 With plotMDTS, you can do all 4 steps with a single plotting function.
 
+## Installation
+You can use devtools and install from this github repo:
+```
+library(devtools)
+
+install_github("plottMDTS", "hudsonsuds")
+```
+
 ## Examples
 I couldn't find a good dataset to use for demos, so dropped one at:
 https://docs.google.com/spreadsheets/d/11Jkv-wkYVguoAPnogB-5MAjG9qjJ-SUIpt0Ic9uPpU8/edit#gid=0

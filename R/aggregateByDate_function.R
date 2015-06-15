@@ -13,6 +13,7 @@ require(dplyr)
 #' @param date.col The date column to use (defaults to "date")
 #' @param by.date The granularity to summarize by: day, week, month, year
 #' @export
+#' 
 
 aggregateByDate <- function(data.in,
                             date.col = "date",

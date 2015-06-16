@@ -1,5 +1,5 @@
-require(lubridate)
-require(dplyr)
+library(lubridate)
+library(dplyr)
 
 #' Aggregate a dataframe by date dimensions
 #' 

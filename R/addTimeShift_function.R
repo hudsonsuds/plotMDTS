@@ -1,5 +1,5 @@
-require(lubridate)
-require(dplyr)
+library(lubridate)
+library(dplyr)
 
 #' Add column of time-shifted shifted metrics
 #' 

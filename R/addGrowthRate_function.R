@@ -1,5 +1,5 @@
-require(lubridate)
-require(dplyr)
+library(lubridate)
+library(dplyr)
 
 #' Calculate a growth rate for a metric in a dataframe
 #' 

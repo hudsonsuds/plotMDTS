@@ -1,8 +1,8 @@
-require(ggplot2)
-require(scales)
-require(dplyr)
-require(lazyeval)
-require(stringr)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(lazyeval)
+library(stringr)
 
 #' Plot a Multi-Dimensional Time-Series
 #' 

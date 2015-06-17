@@ -1,6 +1,3 @@
-library(lubridate)
-library(dplyr)
-
 #' Aggregate a dataframe by date dimensions
 #' 
 #' This function takes a dataframe with a date dimension and aggregates
@@ -12,6 +9,7 @@ library(dplyr)
 #' @param data.in A dataframe with a date column (and other metrics or dimensions)
 #' @param date.col The date column to use (defaults to "date")
 #' @param by.date The granularity to summarize by: day, week, month, year
+#' @import lubridate dplyr
 #' @export
 #' 
 
@@ -25,14 +23,14 @@ aggregateByDate <- function(data.in,
   }
   
   # Adjust date to the specified unit (day, week, month, year)
-  data.in[, date.col] <- floor_date(data.in[, date.col], by.date)
+  data.in[, date.col] <- lubridate::floor_date(data.in[, date.col], by.date)
   
   # Get list of dataframe dimensions
   dimensions <- lapply(colnames(data.in[!sapply(data.in, is.numeric)]), as.symbol)
   
   # Group dataframe by date and aggregate
-  data.out <- group_by_(data.in, .dots=dimensions) %>% 
-    summarise_each(funs(sum))
+  data.out <- dplyr::group_by_(data.in, .dots=dimensions) %>% 
+    dplyr::summarise_each(funs(sum))
   
   return(data.out)
   

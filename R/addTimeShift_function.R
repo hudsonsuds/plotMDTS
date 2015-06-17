@@ -1,6 +1,3 @@
-library(lubridate)
-library(dplyr)
-
 #' Add column of time-shifted shifted metrics
 #' 
 #' This function takes a dataframe with a date column and a metric column,
@@ -13,6 +10,7 @@ library(dplyr)
 #' @param date.col The date column in the dataframe
 #' @param time.shift The number of period shifts to apply
 #' @param shift.per The period of time to shift by
+#' @import lubridate dplyr
 #' @export
 
 addTimeShift <- function(data.in,
@@ -47,22 +45,22 @@ addTimeShift <- function(data.in,
   arrange.dimensions <- c(dimensions, as.symbol(date.col))
   
   # Sort & group data frame
-  data.out <- arrange_(data.in, .dots = arrange.dimensions) %>%
-    group_by_(.dots = dimensions)
+  data.out <- dplyr::arrange_(data.in, .dots = arrange.dimensions) %>%
+    dplyr::group_by_(.dots = dimensions)
   
   # Add lagged columns (naming workarounds for bugs in NSE w/ dplyr & lag)
   names(data.out)[names(data.out) == metric] <- "pmetric"
   data.out <- switch(time.shift,
-                     mutate(data.out, 
-                            n.1 = lag(pmetric, shift.per)),
-                     mutate(data.out, 
-                            n.1 = lag(pmetric, shift.per),
-                            n.2 = lag(pmetric, shift.per.2)),
-                     mutate(data.out, 
-                            n.1 = lag(pmetric, shift.per),
-                            n.2 = lag(pmetric, shift.per.2),
-                            n.3 = lag(pmetric, shift.per.3)))
-
+                     dplyr::mutate(data.out, 
+                                   n.1 = lag(pmetric, shift.per)),
+                     dplyr::mutate(data.out, 
+                                   n.1 = lag(pmetric, shift.per),
+                                   n.2 = lag(pmetric, shift.per.2)),
+                     dplyr::mutate(data.out, 
+                                   n.1 = lag(pmetric, shift.per),
+                                   n.2 = lag(pmetric, shift.per.2),
+                                   n.3 = lag(pmetric, shift.per.3)))
+  
   names(data.out)[names(data.out) == "pmetric"] <- metric
   
   return(data.out)

@@ -1,9 +1,3 @@
-library(ggplot2)
-library(scales)
-library(dplyr)
-library(lazyeval)
-library(stringr)
-
 #' Plot a Multi-Dimensional Time-Series
 #' 
 #' This wrapper enables you to quickly and powerfully plot a multi-dimensional
@@ -23,6 +17,7 @@ library(stringr)
 #' @param y.zero Show the y-axis starting at zero
 #' @param add.weekends Whether or not to compute and show weekend highlights for this time-series
 #' @param add.zeros Whether or not to add zeros for every date:dimension combination
+#' @import ggplot2 scales dplyr lazyeval stringr
 #' @export
 #' @examples 
 #' plotMDTS(example.data, metric = "Impressions")
@@ -91,30 +86,31 @@ plotMDTS <- function(
   # Aggregate across dimensions except group and facet
   if (!is.null(group) && !is.null(facet)) {
     # Both group and facet
-    data.group <- group_by_(data.clean, "date", group, facet)
+    data.group <- dplyr::group_by_(data.clean, "date", group, facet)
     
   } else if (!is.null(group)) {
     # Just group
-    data.group <- group_by_(data.clean, "date", group)
+    data.group <- dplyr::group_by_(data.clean, "date", group)
     
   } else if (!is.null(facet)) {
     # Just facet
-    data.group <- group_by_(data.clean, "date", facet)
+    data.group <- dplyr::group_by_(data.clean, "date", facet)
     
   } else {
     # Neither
-    data.group <- group_by(data.clean, date)
+    data.group <- dplyr::group_by(data.clean, date)
     
   }
   
   # Add metric
   if (count.unique) {
-    data.group <- summarize_(data.group,
-                             value = interp(~n_distinct(var), var = as.name(metric)))
+    data.group <- dplyr::summarize_(data.group,
+                             value = lazyeval::interp(~n_distinct(var), 
+                                                      var = as.name(metric)))
     
   } else {
-    data.group <- summarize_(data.group,
-                             value = interp(~sum(var, na.rm = TRUE), 
+    data.group <- dplyr::summarize_(data.group,
+                             value = lazyeval::interp(~sum(var, na.rm = TRUE), 
                                             var = as.name(metric)))
   }
   
@@ -158,10 +154,10 @@ plotMDTS <- function(
   
   # Filter data
   if (!is.null(filters)) {
-    data.group <- filter_(data.group, filters)
+    data.group <- dplyr::filter_(data.group, filters)
     
     # Drop NAs for defined metric
-    data.group <- filter(data.group, !is.na(interp(metric)))
+    data.group <- dplyr::filter(data.group, !is.na(interp(metric)))
   }  
   
   # Fill in zeros for missing values
@@ -171,13 +167,13 @@ plotMDTS <- function(
   }
   
   # Create plot
-  data.plot <- ggplot()
+  data.plot <- ggplot2::ggplot()
   
   # Add weekends
   if (add.weekends) {
     # Calculate weekends for plotting     
     weekends <- select(
-      filter(data.frame(date=seq(min(data.group$date, na.rm = TRUE), 
+      dplyr::filter(data.frame(date=seq(min(data.group$date, na.rm = TRUE), 
                                  max(data.group$date, na.rm = TRUE), by="day")), 
              weekdays(date) == "Saturday"), 
       date)    
@@ -305,7 +301,7 @@ addMissingZeros <- function(data.in) {
   }
   
   # Merge with actual data frame
-  data.out <- left_join(
+  data.out <- dplyr::left_join(
     possible.rows,
     data.in)
   

@@ -1,6 +1,3 @@
-library(lubridate)
-library(dplyr)
-
 #' Calculate a growth rate for a metric in a dataframe
 #' 
 #' This function takes a dataframe with a date column and a metric column,
@@ -12,6 +9,7 @@ library(dplyr)
 #' @param metric
 #' @param date.col The date column in the dataframe
 #' @param growth.per
+#' @import lubridate dplyr
 #' @export
 
 addGrowthRate <- function(data.in,
